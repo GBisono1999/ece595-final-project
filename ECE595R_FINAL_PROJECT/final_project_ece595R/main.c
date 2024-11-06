@@ -27,30 +27,40 @@
 #include "inc/Clock.h"
 #include "inc/EUSCI_A0_UART.h"
 #include "inc/GPIO.h"
+#include "adafruit_pwm_driver/inc/pwm_driver.h"
+
+
+static uint8_t servonum = 0;
+
+#define SERVOMIN  150 // This is the 'minimum' pulse length count (out of 4096)
+#define SERVOMAX  600 // This is the 'maximum' pulse length count (out of 4096)
 
 int main(void)
 {
     // Initialize the 48 MHz Clock
     Clock_Init48MHz();
 
-    // Initialize the built-in red LED and the RGB LEDs
-    LED1_Init();
-    LED2_Init();
+    PCA9685_Init();
 
-    // Initialize the user buttons
-    Buttons_Init();
+    PCA9685_setPWMFreq(50);
 
-    // Initialize the PMOD 8LD module
-    PMOD_8LD_Init();
-
-    // Initialize the PMOD SWT module
-    PMOD_SWT_Init();
+    Clock_Delay1ms(10);
 
     while(1)
     {
-        uint8_t button_status = Get_Buttons_Status();
-        uint8_t switch_status = Get_PMOD_SWT_Status();
-        LED_Controller(button_status, switch_status);
-        Clock_Delay1ms(100);
+        uint16_t pulselen;
+        for (pulselen = SERVOMIN; pulselen < SERVOMAX; pulselen++) {
+            PCA9685_setPWM(servonum, 0, pulselen);
+        }
+
+        Clock_Delay1ms(500);
+
+        for (pulselen = SERVOMAX; pulselen > SERVOMIN; pulselen--) {
+            PCA9685_setPWM(servonum, 0, pulselen);
+        }
+        Clock_Delay1ms(500);
+
+        servonum++;
+        if (servonum > 3) servonum = 0; //Testing the first four servo channels
     }
 }

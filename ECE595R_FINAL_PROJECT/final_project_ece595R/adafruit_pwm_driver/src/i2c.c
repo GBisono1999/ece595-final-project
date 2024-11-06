@@ -39,14 +39,14 @@ void EUSCI_B1_I2C_Init()
     //Use SMLCK which is 12MHz
     EUSCI_B1->CTLW0 |= 0x00C0;
 
-    //Use the ACK condition
-    EUSCI_B1->CTLW0 |= 0x0020;
+    //Don't use the ACK condition
+    EUSCI_B1->CTLW0 &= ~0x0020;
 
     //I2C master receiver mode
     EUSCI_B1->CTLW0 &= ~0x0010;
 
     //Clear bit as we aren't using slave receiver
-    EUSCI_B1->CTLW0 &= ~0x0080;
+    EUSCI_B1->CTLW0 &= ~0x0008;
 
     //Don't generate stop in master mode
     EUSCI_B1->CTLW0 &= ~0x0004;
@@ -75,6 +75,26 @@ void EUSCI_B1_I2C_Init()
     EUSCI_B1->CTLW0 &= ~0x0001;
 
 
+}
+
+
+void EUSCI_B1_I2C_Send_A_Byte(uint8_t slave_address, uint8_t data)
+{
+    while((EUSCI_B1->STATW & 0x0010) != 0);
+
+    EUSCI_B1->I2CSA = slave_address;
+
+    EUSCI_B1->CTLW0 = (EUSCI_B1->CTLW0 & ~0x0004) | 0x0012;
+
+    while((EUSCI_B1->IFG & 0x0002) == 0);
+
+    EUSCI_B1->TXBUF = data;
+
+    while((EUSCI_B1->IFG & 0x0002) == 0);
+
+    EUSCI_B1->CTLW0 |= 0x0004;
+
+    EUSCI_B1->IFG &= ~0x0002;
 }
 
 void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
@@ -111,7 +131,7 @@ void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
     EUSCI_B1->IFG &= ~0x0002;
 }
 
-uint8_t EUSCI_B1_I2C_Receive_Data(uint8_t slave_address, uint8_t *data_buffer, uint16_t packet_length)
+void EUSCI_B1_I2C_Receive_Data(uint8_t slave_address, uint8_t *data_buffer)
 {
     //Sets the slave address
     EUSCI_B1->I2CSA = slave_address;
