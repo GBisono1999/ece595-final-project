@@ -68,7 +68,7 @@
 #define MODE2_INVRT 0x10  /**< Output logic state inverted */
 
 #define PCA9685_I2C_ADDRESS 0x40      /**< Default PCA9685 I2C Slave Address */
-#define FREQUENCY_OSCILLATOR 25000000 /**< Int. osc. frequency in datasheet */
+#define FREQUENCY_OSCILLATOR 27000000 /**< Int. osc. frequency in datasheet */
 
 #define PCA9685_PRESCALE_MIN 3   /**< minimum prescale value */
 #define PCA9685_PRESCALE_MAX 255 /**< maximum prescale value */
@@ -76,10 +76,10 @@
 void PCA9685_Init();
 
 //grabbed from the arduino library
-//void PCA9685_setPWMFreq(float freq);
+void PCA9685_setPWMFreq(float freq);
 
 //grabbed from the arduino library
-//void PCA9685_setPWM(uint8_t num, uint16_t on, uint16_t off);
+void PCA9685_setPWM(uint8_t num, uint16_t on, uint16_t off);
 
 //grabbed from the arduino library
 //void PCA9685_setOscillatorFrequency(uint32_t freq);

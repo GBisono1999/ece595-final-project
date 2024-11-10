@@ -54,17 +54,25 @@ void PCA9685_Write_Register(uint8_t register_address, uint8_t register_data)
 
 uint8_t PCA9685_Read_Register(uint8_t register_address)
 {
+    //printf("A\n");
     EUSCI_B1_I2C_Send_A_Byte(PCA9685_I2C_ADDRESS, register_address);
+    //printf("B\n");
     uint8_t received_data = EUSCI_B1_I2C_Receive_A_Byte(PCA9685_I2C_ADDRESS);
+    //printf("C\n");
     return received_data;
 }
 
 void PCA9685_Init()
 {
     // Initialize I2C using EUSCI_B1 module
+    printf("EUSCI_B1_I2C_Init Begin\n");
     EUSCI_B1_I2C_Init();
+    printf("EUSCI_B1_I2C_Init End\n");
     Clock_Delay1ms(100);
-    PCA9685_setPWMFreq(1000);
+
+    printf("PCA9685_setPWMFreq Begin\n");
+    PCA9685_setPWMFreq(1000.0);
+    printf("PCA9685_setPWMFreq End\n");
 }
 
 void PCA9685_setPWMFreq(float freq)
@@ -82,9 +90,11 @@ void PCA9685_setPWMFreq(float freq)
     uint8_t prescale = (uint8_t)prescaleval;
 
 
-
+    printf("PCA9685_Read_Register PCA9685_MODE1 Begin\n");
     uint8_t oldmode = PCA9685_Read_Register(PCA9685_MODE1);
-    uint8_t newmode = (uint8_t)(oldmode & ~MODE1_RESTART) | MODE1_SLEEP; //Set to sleep
+    printf("PCA9685_Read_Register PCA9685_MODE1 End\n");
+
+    uint8_t newmode = (oldmode & ~MODE1_RESTART) | MODE1_SLEEP; //Set to sleep
 
     //[Start][Slave Address][R/~W][A][Control Register][A][Data][A][P])
 
@@ -92,8 +102,37 @@ void PCA9685_setPWMFreq(float freq)
     PCA9685_Write_Register(PCA9685_PRESCALE, prescale);
     PCA9685_Write_Register(PCA9685_MODE1, oldmode);
 
-    Clock_Delay1ms(5);
+    Clock_Delay1ms(50);
 
-    PCA9685_Write_Register(PCA9685_MODE1, oldmode | MODE1_RESTART | MODE1_AI);
+    PCA9685_Write_Register(PCA9685_MODE1, (oldmode & ~MODE1_SLEEP) | MODE1_RESTART | MODE1_AI);
 }
 
+void PCA9685_setPWM(uint8_t num, uint16_t on, uint16_t off)
+{
+    //uint8_t a1 = (PCA9685_LED0_ON_L + 4 * num);
+
+    //PCA9685_Write_Register(PCA9685_LED0_ON_L, on);
+
+    //uint8_t a2 = (PCA9685_LED0_ON_L + 4 * num) + 1;
+    //PCA9685_Write_Register(PCA9685_LED0_ON_H, on >> 8);
+
+    //uint8_t a3 = (PCA9685_LED0_ON_L + 4 * num) + 2;
+
+    //PCA9685_Write_Register(PCA9685_LED0_OFF_L, off);
+    //uint8_t a4 = (PCA9685_LED0_ON_L + 4 * num) + 3;
+
+    //PCA9685_Write_Register(PCA9685_LED0_0FF_H, off >> 8);
+
+
+    uint8_t buffer[5];
+    buffer[0] = PCA9685_LED0_ON_L + 4 * num;
+    buffer[1] = on & 0xFF;
+    buffer[2] = (on >> 8)& 0xFF;
+    buffer[3] = off& 0xFF;
+    buffer[4] = (off >> 8)& 0xFF;
+
+    EUSCI_B1_I2C_Send_Multiple_Bytes(PCA9685_I2C_ADDRESS, buffer, sizeof(buffer));
+    printf("YES\n");
+    //uint8_t r1 =
+
+}

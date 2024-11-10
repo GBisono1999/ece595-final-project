@@ -32,25 +32,47 @@
 
 static uint8_t servonum = 0;
 
-#define SERVOMIN  150 // This is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  600 // This is the 'maximum' pulse length count (out of 4096)
+static uint16_t pulselen = 0;
+
+#define SERVOMIN  0 // This is the 'minimum' pulse length count (out of 4096)
+#define SERVOMAX  4096 // This is the 'maximum' pulse length count (out of 4096)
 
 int main(void)
 {
     // Initialize the 48 MHz Clock
     Clock_Init48MHz();
+    EUSCI_A0_UART_Init_Printf();
 
-    //PCA9685_Init();
 
-    //PCA9685_setPWMFreq(50);
+    printf("BEGIN\n");
 
+    //EUSCI_B1_I2C_Init();
+
+    //EUSCI_A0_UART_Init();
+    PCA9685_Init();
+
+    PCA9685_setPWMFreq(50);
     Clock_Delay1ms(10);
 
+    printf("END\n");
     while(1)
     {
 
-        uint8_t oldmode = PCA9685_Read_Register(PCA9685_MODE1);
-        printf("OLDMODE: %d", oldmode);
+        for(pulselen = SERVOMIN; pulselen < SERVOMAX; pulselen++)
+        {
+            PCA9685_setPWM(servonum, 0, pulselen);
+        }
 
+        Clock_Delay1ms(500);
+        for(pulselen = SERVOMAX; pulselen > SERVOMIN; pulselen--)
+        {
+            PCA9685_setPWM(servonum, 0, pulselen);
+        }
+
+        Clock_Delay1ms(500);
+
+        servonum++;
+
+        if(servonum > 1) servonum = 0;
     }
 }

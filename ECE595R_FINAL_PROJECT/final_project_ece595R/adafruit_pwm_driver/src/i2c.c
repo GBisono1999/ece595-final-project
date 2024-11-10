@@ -74,6 +74,8 @@ void EUSCI_B1_I2C_Init()
     P6->SEL0 |= 0x30;  //only set pins 4-5
     P6->SEL1 &= ~0x30; //only clear pins 4-5
 
+    P6->REN |= 0x30;
+
     //No interrupts
     EUSCI_B1->IE &= ~0x7FFF;
 
@@ -86,17 +88,23 @@ void EUSCI_B1_I2C_Init()
 
 void EUSCI_B1_I2C_Send_A_Byte(uint8_t slave_address, uint8_t data)
 {
-    while((EUSCI_B1->STATW & 0x0010) != 0);
 
+    //printf("While loop 1 begin\n");
+    while((EUSCI_B1->STATW & 0x0010) != 0);
+    //printf("While loop 1 end\n");
     EUSCI_B1->I2CSA = slave_address;
 
     EUSCI_B1->CTLW0 = (EUSCI_B1->CTLW0 & ~0x0004) | 0x0012;
 
+    //printf("While loop 2 begin\n");
     while((EUSCI_B1->IFG & 0x0002) == 0);
+    //printf("While loop 2 end\n");
 
     EUSCI_B1->TXBUF = data;
 
+    //printf("While loop 3 begin\n");
     while((EUSCI_B1->IFG & 0x0002) == 0);
+    //printf("While loop 3 end\n");
 
     EUSCI_B1->CTLW0 |= 0x0004;
 
