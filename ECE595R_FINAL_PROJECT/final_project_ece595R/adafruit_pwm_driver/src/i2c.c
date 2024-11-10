@@ -28,6 +28,9 @@ void EUSCI_B1_I2C_Init()
     EUSCI_B1->CTLW0 &= ~0xC000;
 
     //Single master mode, basically saying the board is the "master"
+    EUSCI_B1->CTLW0 &= ~0x2000;
+
+    //Operate in master mode
     EUSCI_B1->CTLW0 |= 0x0800;
 
     //Use I2C
@@ -52,6 +55,7 @@ void EUSCI_B1_I2C_Init()
     EUSCI_B1->CTLW0 &= ~0x0004;
 
     //Don't generate start in master mode
+
     EUSCI_B1->CTLW0 &= ~0x0002;
 
     //Clear all bits in CTLW1
@@ -59,6 +63,8 @@ void EUSCI_B1_I2C_Init()
     EUSCI_B1->CTLW1 &= ~0x01FF;
 
     //Desired freq for pwm driver is 1MHz
+
+    // N = (Clock Frequency) / (SCL Frequency) = (12,000,000 / 1,000,000) = 12
     EUSCI_B1->BRW = 12;
 
     //Set the pins for:
@@ -97,7 +103,7 @@ void EUSCI_B1_I2C_Send_A_Byte(uint8_t slave_address, uint8_t data)
     EUSCI_B1->IFG &= ~0x0002;
 }
 
-void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
+void EUSCI_B1_I2C_Send_Multiple_Bytes(uint8_t slave_address, uint8_t *data_buffer, uint32_t packet_length)
 {
     //Checks if it is busy. If not, proceed
     while((EUSCI_B1->STATW & 0x0010) != 0);
@@ -111,7 +117,7 @@ void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
     EUSCI_B1->CTLW0 = (EUSCI_B1->CTLW0 & ~0x0004) | 0x0012;
 
     int i;
-    for(i = 0; i < sizeof(data_buffer); i++)
+    for(i = 0; i < packet_length; i++)
     {
         //wait for transmitter to not be pending.
         while((EUSCI_B1->IFG & 0x0002) == 0);
@@ -131,7 +137,27 @@ void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
     EUSCI_B1->IFG &= ~0x0002;
 }
 
-void EUSCI_B1_I2C_Receive_Data(uint8_t slave_address, uint8_t *data_buffer)
+
+uint8_t EUSCI_B1_I2C_Receive_A_Byte(uint8_t slave_address)
+{
+    while((EUSCI_B1->STATW & 0x0010) != 0);
+
+    EUSCI_B1->CTLW0 |= 0x0001;
+
+    EUSCI_B1->TBCNT |= 0x0001;
+
+    EUSCI_B1->CTLW0 &= ~0x0001;
+
+    EUSCI_B1->I2CSA = slave_address;
+
+    EUSCI_B1->CTLW0 = (EUSCI_B1->CTLW0 & ~0x0010) | 0x0006;
+
+    while((EUSCI_B1->IFG & 0x0001) == 0);
+
+    return ((uint8_t)(EUSCI_B1->RXBUF));
+}
+
+void EUSCI_B1_I2C_Receive_Multiple_Bytes(uint8_t slave_address, uint8_t *data_buffer, uint16_t packet_length)
 {
     //Sets the slave address
     EUSCI_B1->I2CSA = slave_address;
@@ -140,10 +166,10 @@ void EUSCI_B1_I2C_Receive_Data(uint8_t slave_address, uint8_t *data_buffer)
     //Generate a start(Bit 1).
     EUSCI_B1->CTLW0 = (EUSCI_B1->CTLW0 & ~0x0010) | 0x0002;
     int i;
-    for(i = 0; i < sizeof(data_buffer); i++)
+    for(i = 0; i < packet_length; i++)
     {
         //If last byte is being received, send stop condition
-        if(i == (sizeof(data_buffer) - 1))
+        if(i == (packet_length - 1))
         {
             EUSCI_B1->CTLW0 |= 0x0004;
         }

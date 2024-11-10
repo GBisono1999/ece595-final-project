@@ -39,31 +39,33 @@
 
 #include "../inc/pwm_driver.h"
 #include <stdint.h>
-//This is your pwm.begin() basically, or should be at least.
-void PCA9685_Init()
+
+
+void PCA9685_Write_Register(uint8_t register_address, uint8_t register_data)
 {
+    uint8_t buffer[] =
+        {
+             register_address,
+             register_data & 0xFF
+        };
 
-    EUSCI_B1_I2C_Init();
-    //Configure P4.5 to GPIO
-    P4->SEL0 &= ~0x20;
-    P4->SEL1 &= ~0x20;
-
-    //P4.5 as output
-    P4->DIR |= 0x20;
-
-    //Drive P4.5 high as it is supplying power
-    P4->OUT |= 0x20;
-
-    //Add a small delay for the pins to initialize
-    Clock_Delay1ms(1);
-
-    //set a default freq. EXTCLK not support yet.
-    PCA9685_setPWMFreq(1000);
+    EUSCI_B1_I2C_Send_Multiple_Bytes(PCA9685_I2C_ADDRESS, buffer, sizeof(buffer));
 }
 
-//void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
+uint8_t PCA9685_Read_Register(uint8_t register_address)
+{
+    EUSCI_B1_I2C_Send_A_Byte(PCA9685_I2C_ADDRESS, register_address);
+    uint8_t received_data = EUSCI_B1_I2C_Receive_A_Byte(PCA9685_I2C_ADDRESS);
+    return received_data;
+}
 
-//void EUSCI_B1_I2C_Receive_Data(uint8_t slave_address, uint8_t *data_buffer, uint16_t packet_length)
+void PCA9685_Init()
+{
+    // Initialize I2C using EUSCI_B1 module
+    EUSCI_B1_I2C_Init();
+    Clock_Delay1ms(100);
+    PCA9685_setPWMFreq(1000);
+}
 
 void PCA9685_setPWMFreq(float freq)
 {
@@ -74,64 +76,24 @@ void PCA9685_setPWMFreq(float freq)
 
     float prescaleval = ((FREQUENCY_OSCILLATOR / (freq * 4096.0)) + 0.5) - 1;
     if (prescaleval < PCA9685_PRESCALE_MIN)
-    prescaleval = PCA9685_PRESCALE_MIN;
+        prescaleval = PCA9685_PRESCALE_MIN;
     if (prescaleval > PCA9685_PRESCALE_MAX)
-    prescaleval = PCA9685_PRESCALE_MAX;
+        prescaleval = PCA9685_PRESCALE_MAX;
     uint8_t prescale = (uint8_t)prescaleval;
 
-    uint8_t oldmode[1];
 
-    EUSCI_B1_I2C_Receive_Data(PCA9685_I2C_ADDRESS, oldmode);
-    uint8_t newmode = (uint8_t)(oldmode[0] & ~MODE1_RESTART) | MODE1_SLEEP; //Set to sleep
 
-    //[Start][Slave Address][R/~W][A][Control Register][A][Data][A][P]
+    uint8_t oldmode = PCA9685_Read_Register(PCA9685_MODE1);
+    uint8_t newmode = (uint8_t)(oldmode & ~MODE1_RESTART) | MODE1_SLEEP; //Set to sleep
 
-    //uint8_t setMode1[] = {PCA9685_MODE1, newmode};
-    //void EUSCI_B1_I2C_Send_Data(uint8_t slave_address, uint8_t *data_buffer)
+    //[Start][Slave Address][R/~W][A][Control Register][A][Data][A][P])
 
-    uint8_t data[2];
-
-    data[0] = PCA9685_MODE1;
-    data[1] = newmode;
-    EUSCI_B1_I2C_Send_Data(PCA9685_I2C_ADDRESS, data);
-
-    data[0] = PCA9685_PRESCALE;
-    data[1] = prescale;
-    EUSCI_B1_I2C_Send_Data(PCA9685_I2C_ADDRESS, data);
-
-    data[0] = PCA9685_MODE1;
-    data[1] = oldmode[0];
-    EUSCI_B1_I2C_Send_Data(PCA9685_I2C_ADDRESS, data);
-
-    //EUSCI_B1_I2C_Send_A_Byte(PCA9685_MODE1, newmode);
-    //EUSCI_B1_I2C_Send_A_Byte(PCA9685_PRESCALE, prescale);
-    //EUSCI_B1_I2C_Send_A_Byte(PCA9685_MODE1, oldmode[0]);
+    PCA9685_Write_Register(PCA9685_MODE1, newmode);
+    PCA9685_Write_Register(PCA9685_PRESCALE, prescale);
+    PCA9685_Write_Register(PCA9685_MODE1, oldmode);
 
     Clock_Delay1ms(5);
 
-    data[0] = PCA9685_MODE1;
-    data[1] = (oldmode[0] | MODE1_RESTART | MODE1_AI);
-    EUSCI_B1_I2C_Send_Data(PCA9685_I2C_ADDRESS, data);
-
-    //EUSCI_B1_I2C_Send_A_Byte(PCA9685_MODE1, (oldmode[0] | MODE1_RESTART | MODE1_AI));
+    PCA9685_Write_Register(PCA9685_MODE1, oldmode | MODE1_RESTART | MODE1_AI);
 }
 
-
-/*
- *  @brief  Sets the PWM output of one of the PCA9685 pins
- *  @param  num One of the PWM output pins, from 0 to 15
- *  @param  on At what point in the 4096-part cycle to turn the PWM output ON
- *  @param  off At what point in the 4096-part cycle to turn the PWM output OFF
- *  @return 0 if successful, otherwise 1
- */
-void PCA9685_setPWM(uint8_t num, uint16_t on, uint16_t off)
-{
-    uint8_t buffer[5];
-    buffer[0] = PCA9685_LED0_ON_L + 4 * num;
-    buffer[1] = on;
-    buffer[2] = on >> 8;
-    buffer[3] = off;
-    buffer[4] = off >> 8;
-
-    EUSCI_B1_I2C_Send_Data(PCA9685_I2C_ADDRESS, buffer);
-}

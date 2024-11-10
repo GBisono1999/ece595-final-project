@@ -76,18 +76,18 @@
 void PCA9685_Init();
 
 //grabbed from the arduino library
-void PCA9685_setPWMFreq(float freq);
+//void PCA9685_setPWMFreq(float freq);
 
 //grabbed from the arduino library
-void PCA9685_setPWM(uint8_t num, uint16_t on, uint16_t off);
+//void PCA9685_setPWM(uint8_t num, uint16_t on, uint16_t off);
 
 //grabbed from the arduino library
 //void PCA9685_setOscillatorFrequency(uint32_t freq);
 
 //grabbed from the arduino library
-void PCA9685_read();
+uint8_t PCA9685_Read_Register(uint8_t register_address);
 
 //grabbed from the arduino library
-void PCA9685_write();
+void PCA9685_Write_Register(uint8_t register_address, uint8_t register_data);
 
 #endif //PWM_DRIVER_H

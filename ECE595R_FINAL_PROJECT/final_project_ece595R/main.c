@@ -40,27 +40,17 @@ int main(void)
     // Initialize the 48 MHz Clock
     Clock_Init48MHz();
 
-    PCA9685_Init();
+    //PCA9685_Init();
 
-    PCA9685_setPWMFreq(50);
+    //PCA9685_setPWMFreq(50);
 
     Clock_Delay1ms(10);
 
     while(1)
     {
-        uint16_t pulselen;
-        for (pulselen = SERVOMIN; pulselen < SERVOMAX; pulselen++) {
-            PCA9685_setPWM(servonum, 0, pulselen);
-        }
 
-        Clock_Delay1ms(500);
+        uint8_t oldmode = PCA9685_Read_Register(PCA9685_MODE1);
+        printf("OLDMODE: %d", oldmode);
 
-        for (pulselen = SERVOMAX; pulselen > SERVOMIN; pulselen--) {
-            PCA9685_setPWM(servonum, 0, pulselen);
-        }
-        Clock_Delay1ms(500);
-
-        servonum++;
-        if (servonum > 3) servonum = 0; //Testing the first four servo channels
     }
 }
